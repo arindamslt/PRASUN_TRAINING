@@ -1,0 +1,88 @@
+REACTIVE PRODUCT SERVICE
+==============================================================
+DEPENDENCY REQUIRED
+==============================================================
+SpringReactiveWeb
+SpringDataR2DBC
+ <dependency>
+    <groupId>io.asyncer</groupId>
+    <artifactId>r2dbc-mysql</artifactId>
+ </dependency>
+=================================================================
+spring
+REACTIVE CRUD OPERATION PRODUCT SERVICE
+application.properties
+=======================================================================
+spring.r2dbc.url=r2dbc:mysql://localhost:3306/reactivedbs?useSSL=false
+spring.r2dbc.username=root
+spring.r2dbc.password=arindam
+logging.level.org.springframework.r2dbc=DEBUG
+logging.level.io.r2dbc.mysql=DEBUG
+========================================================================
+CONTROLLER PRODUCT SERVICE DELETE
+==========================================================================
+@DeleteMapping("/product/{pid}")
+public Mono<ResponseEntity<String>> deleteData(@PathVariable Integer pid)
+{
+	return pservice.deleteData(pid)
+			.map(ps->ResponseEntity.status(HttpStatus.OK).body(ps))
+			.onErrorResume(ex->Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage())));
+}
+================================================================================
+REACTIVE PROGRAMMING WEBCLIENT
+========================================================================
+DEPENDENCY REQUIRED
+========================================================================
+SpringReactiveWeb
+application.yml
+========================================================================
+server:
+  port: 8082
+product:
+  service:
+    url: http://localhost:8080/product/fetch
+============================================================================
+OrderService Class
+===========================================================================
+public Mono<OrderResponse> placeOrder(OrderRequest req)
+{
+	 return client.get()
+             .uri("/" + req.getPid())
+             .retrieve()
+             .bodyToMono(Product.class)
+             .flatMap(product -> {
+
+                 Double total = product.getPrice() * req.getPqty();
+
+                 OrderResponse response = new OrderResponse(
+                         product.getPname(),
+                         product.getPrice(),
+                         req.getPqty(),
+                         total
+                 );
+
+                 return Mono.just(response);
+             })
+             .switchIfEmpty(Mono.error(new RuntimeException("Invalid Product ID")));
+ }
+================================================================================
+mysql> CREATE DATABASE REACTIVEDB;
+Query OK, 1 row affected (0.04 sec)
+
+mysql> USE REACTIVEDB;
+Database changed
+mysql> CREATE TABLE PRODUCT
+    -> (PID INT AUTO_INCREMENT PRIMARY KEY,
+    ->  PNAME VARCHAR(25) NOT NULL,
+    ->  PRICE  DECIMAL);
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> DESC PRODUCT;
++-------+---------------+------+-----+---------+----------------+
+| Field | Type          | Null | Key | Default | Extra          |
++-------+---------------+------+-----+---------+----------------+
+| PID   | int           | NO   | PRI | NULL    | auto_increment |
+| PNAME | varchar(25)   | NO   |     | NULL    |                |
+| PRICE | decimal(10,0) | YES  |     | NULL    |                |
++-------+---------------+------+-----+---------+----------------+
+3 rows in set (0.01 sec)

@@ -1,0 +1,5 @@
+server:
+  port: 8082
+product:
+  service:
+    url: http://localhost:8080/product/fetch
